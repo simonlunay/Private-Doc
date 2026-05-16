@@ -1,173 +1,131 @@
-# Private-Doc
+# PrivateDoc
 
-A Midnight Network smart contract scaffolded with create-mn-app.
+A privacy-preserving AI health symptom checker built on the Midnight blockchain. Describe your symptoms and receive AI-guided health information — zero-knowledge proofs ensure your raw data is never recorded on-chain.
 
-## Quick start
+## Tech stack
 
-Requirements: Node 22, Docker (with Compose v2), and the Compact compiler at the version pinned in `.compact-version` at the create-mn-app repo root (the version this project was scaffolded against).
-
-```bash
-npm install
-npm run setup
-npm run test:e2e
-```
-
-`npm run setup` runs end-to-end with no prompts:
-
-1. `docker compose up -d --wait` — starts a local Midnight devnet (node, indexer, proof-server) and blocks until all three pass their healthchecks.
-2. `npm run compile` — compiles `contracts/hello-world.compact` to `contracts/managed/hello-world/`.
-3. `npm run deploy` — derives the genesis-seed wallet (NIGHT pre-minted), registers UTXOs for DUST generation, deploys the contract, writes `.midnight-state.json`.
-
-`npm run test:e2e` reconnects to the deployed contract and reads its ledger state. Exits 0 if the contract is live and indexable.
-
-## Local devnet
-
-The project ships its own devnet via `docker-compose.yml`:
-
-| Service        | Port | Purpose                                         |
-| -------------- | ---- | ----------------------------------------------- |
-| `node`         | 9944 | Midnight node, `dev` chain preset               |
-| `indexer`      | 8088 | GraphQL indexer for chain state                 |
-| `proof-server` | 6300 | Generates ZK proofs for contract transactions   |
-
-State lives in container-managed volumes. Tear everything down with:
-
-```bash
-docker compose down -v
-```
-
-That removes all containers, networks, and volumes. The next `npm run setup` starts from a clean slate.
-
-## ⚠️ LOCAL DEVNET ONLY
-
-The deploy script uses a well-known genesis seed (`0000…0001`) so the
-pre-minted NIGHT in the `dev` chain preset is immediately available. **Do
-not use this seed against Preprod, mainnet, or any environment that
-handles real value** — anyone running this devnet has full access to
-funds at this seed.
-
-## Networks
-
-This DApp supports three networks:
-
-| Network | When to use | Default? |
-|---|---|---|
-| `undeployed` | Local devnet bundled in `docker-compose.yml`. Genesis seed is hardcoded; no funding needed. | yes |
-| `preview` | Public preview testnet. Faucet at `https://faucet.preview.midnight.network`. |  |
-| `preprod` | Public preprod testnet. Faucet at `https://faucet.preprod.midnight.network`. |  |
-
-The active network is **sticky**: whichever network you last interacted
-with stays active until you switch. Any command run with `--network <name>`
-also sets that network active for subsequent commands. The default on a
-fresh project is `undeployed` (local devnet).
-
-```sh
-npm run setup -- --network preview   # runs on preview AND makes it active
-npm run cli                          # still uses preview
-npm run check-balance                # still uses preview
-```
-
-You can also switch without running anything else:
-
-```sh
-npm run network preview         # active network is now preview
-npm run network                 # prints current active network
-npm run network undeployed      # switch back to local devnet
-```
-
-### How wallets work across networks
-
-- `undeployed` uses a hardcoded genesis seed. Local devnet pre-funds it.
-- `preview` and `preprod` generate a fresh seed on first use and store it
-  in `.midnight-state.json` (gitignored). The seed survives switching
-  networks — switch back later and your funded wallet returns.
-- **Back up your seed** if you fund a public-network wallet you care
-  about. Open `.midnight-state.json` and copy the relevant
-  `wallets.<network>.seed` value to a safe place.
-
-### Funding a public-network wallet
-
-On the first run with `--network preview` (or `preprod`):
-
-1. `setup` will print your wallet address and the faucet URL.
-2. Open the faucet URL, paste the address, request tNIGHT.
-3. `setup` polls the wallet balance every 10 s and continues automatically
-   once funds arrive.
-4. The default poll budget is 10 minutes. Override with
-   `MIDNIGHT_FAUCET_TIMEOUT_MS=1800000` (30 min) for unattended runs.
-
-If the faucet is slow or the script times out, your seed is preserved.
-Re-run `npm run setup -- --network preview` once the funds land.
-
-### Environment overrides
-
-These env vars override the active network's config (no per-network
-suffix — they apply to whichever network is active for the run):
-
-| Variable | Effect |
+| Layer | Technology |
 |---|---|
-| `MIDNIGHT_WALLET_SEED` | Use this seed instead of generating/persisting one. Useful for CI with a pre-funded wallet. |
-| `MIDNIGHT_INDEXER_URL` | Override the indexer GraphQL URL. |
-| `MIDNIGHT_INDEXER_WS_URL` | Override the indexer WS URL. |
-| `MIDNIGHT_NODE_URL` | Override the node RPC URL. |
-| `MIDNIGHT_FAUCET_URL` | Override the faucet URL printed during setup. |
-| `MIDNIGHT_PROOF_SERVER_URL` | Override the proof server URL — set to a public proof server (e.g. `https://lace-proof-pub.preview.midnight.network`) to skip running one locally. |
-| `MIDNIGHT_FAUCET_TIMEOUT_MS` | Faucet poll budget in milliseconds (default 600000 = 10 min). |
+| Frontend | React 18 + Vite + TypeScript |
+| Backend | Express + Node |
+| AI | Claude API (`claude-sonnet-4-6`) |
+| Privacy | Midnight blockchain + Compact ZK smart contracts |
 
-By default all networks use the **local** proof server. Public proof
-servers exist (see the env override above) but the local default keeps
-your witness data on your machine and avoids depending on a remote
-service for the deploy hot path.
+---
 
-### Switching back to local devnet
+## Prerequisites
 
-```sh
-npm run network undeployed     # or: npm run setup -- --network undeployed
+- Node 22
+- A `.env` file at the project root containing your Claude API key:
+
+```
+CLAUDE_API_KEY=sk-ant-...
 ```
 
-Your preview/preprod wallet seeds and deploy addresses stay in
-`.midnight-state.json`. Switch back later, and they're still there.
+---
 
-## Available scripts
+## Running the app
 
-| Script                  | Description                                                    |
-| ----------------------- | -------------------------------------------------------------- |
-| `npm run setup`         | One-shot: start devnet, compile, deploy.                       |
-| `npm run compile`       | Compile the Compact contract.                                  |
-| `npm run deploy`        | Deploy the compiled contract (requires devnet up + compiled).  |
-| `npm run cli`           | Interactive CLI to call circuits on the deployed contract.     |
-| `npm run check-balance` | Print the genesis-seed wallet's NIGHT and DUST balances.       |
-| `npm run test:e2e`      | Smoke + read-back check against the deployed contract.         |
-| `npm run clean`         | Remove `contracts/managed/` and `.midnight-state.json`.        |
-| `npm run proof-server:start` / `:stop` | Compose lifecycle for just the proof-server service. |
+Open two terminals from the project root.
+
+**Terminal 1 — backend (port 3001):**
+```bash
+npm run dev:server
+```
+
+**Terminal 2 — frontend (port 5173):**
+```bash
+npm run dev:frontend
+```
+
+Then open `http://localhost:5173`. The frontend proxies `/api` requests to the backend automatically.
+
+The frontend dev server runs with `--host`, so it's also accessible on your local network at the IP address Vite prints on startup.
+
+### Root-level dev scripts
+
+| Script | Description |
+|---|---|
+| `npm run dev:frontend` | Start the Vite dev server (`frontend/`) |
+| `npm run dev:server` | Start the Express backend (`server/`) with ts-node |
+
+---
 
 ## Project structure
 
 ```
-Private-Doc/
+privatedoc/
 ├── contracts/
-│   └── hello-world.compact     # Compact source
-├── scripts/
-│   └── e2e-check.ts            # smoke + read-back
-├── src/
-│   ├── network.ts              # network selection + state file management
-│   ├── setup.ts                # orchestrator for `npm run setup`
-│   ├── deploy.ts               # deploy the contract
-│   ├── cli.ts                  # interact with deployed contract
-│   └── check-balance.ts        # NIGHT / DUST balance
-├── docker-compose.yml          # node + indexer + proof-server
-├── .midnight-state.json        # written by deploy (gitignored)
-├── package.json
-└── tsconfig.json
+│   └── symptom-checker.compact   # Midnight ZK smart contract (do not modify)
+├── frontend/
+│   ├── public/
+│   │   └── favicon.svg
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── HealthInsights.tsx  # Results grid (urgency, conditions, etc.)
+│   │   │   ├── PrivacyLog.tsx      # Animated ZK proof pipeline steps
+│   │   │   └── SymptomForm.tsx     # Symptom input + category selector
+│   │   ├── App.tsx
+│   │   ├── App.css
+│   │   └── main.tsx
+│   ├── index.html
+│   └── package.json
+├── server/
+│   ├── src/
+│   │   └── index.ts               # Express API + Claude integration
+│   └── package.json
+├── .env                           # CLAUDE_API_KEY (gitignored)
+└── package.json
 ```
 
-## Compact compiler version
+---
 
-`.compact-version` at the create-mn-app repo root pinned the compiler
-version this project was scaffolded against. To upgrade your local
-compiler to that version:
+## How it works
+
+1. **Client-side** — symptoms are never sent in plaintext; the app simulates local encryption before submission.
+2. **ZK proof** — `contracts/symptom-checker.compact` runs a Midnight circuit that takes symptoms as a private witness. Only a `sessionId` is disclosed and written to the public ledger — no patient data on-chain.
+3. **AI inference** — the Express backend calls the Claude API with the symptoms and returns structured health insights (possible conditions, urgency level, recommendations, etc.).
+4. **Response** — the frontend displays the insights alongside the Midnight session ID, proving the analysis ran without exposing the input.
+
+### API
+
+`POST /api/analyze`
+
+```json
+{
+  "symptoms": "headache and mild fever for two days",
+  "age": "34",
+  "category": "head"
+}
+```
+
+Returns a JSON object with `possible_conditions`, `urgency_level`, `recommendations`, `self_care`, `seek_care_if`, `emergency_signs`, `general_advice`, `disclaimer`, and `session_id`.
+
+Valid `category` values: `head`, `chest`, `stomach`, `skin`, `muscles`, `other`.
+
+---
+
+## Midnight devnet (ZK contract development)
+
+The Compact contract in `contracts/` was scaffolded with `create-mn-app`. To compile and deploy it locally you need Docker (Compose v2) and the Compact compiler.
 
 ```bash
-compact update <version>
-compact use <version>
+npm install
+npm run setup      # starts local devnet, compiles contract, deploys
+npm run test:e2e   # smoke check against deployed contract
 ```
+
+`npm run setup` starts a local Midnight devnet (node + indexer + proof-server via Docker), compiles the contract, and deploys it.
+
+Tear down the devnet:
+```bash
+docker compose down -v
+```
+
+> **Warning:** The local devnet uses a well-known genesis seed (`0000…0001`). Do not use it against Preprod, mainnet, or any environment that handles real value.
+
+---
+
+## Disclaimer
+
+PrivateDoc is not a medical professional. This tool is for demonstration purposes only. Always consult a qualified healthcare provider.
