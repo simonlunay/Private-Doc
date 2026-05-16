@@ -1,4 +1,4 @@
-# my-app
+# Private-Doc
 
 A Midnight Network smart contract scaffolded with create-mn-app.
 
@@ -144,7 +144,7 @@ Your preview/preprod wallet seeds and deploy addresses stay in
 ## Project structure
 
 ```
-my-app/
+Private-Doc/
 ├── contracts/
 │   └── hello-world.compact     # Compact source
 ├── scripts/
