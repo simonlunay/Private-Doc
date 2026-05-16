@@ -1,0 +1,26 @@
+pragma language_version >= 0.23;
+
+import CompactStandardLibrary;
+
+// Public ledger — only session identifiers are ever recorded on-chain.
+// Raw symptom data is never disclosed and never leaves the ZK proof.
+export ledger sessionId: Opaque<"string">;
+export ledger sessionCount: Uint<64>;
+
+// Zero-knowledge circuit for private symptom analysis.
+//
+// `symptoms` is a private witness: it participates in proof generation
+// but is never written to public state. The ZK proof attests that a
+// valid analysis call was made without revealing what was submitted.
+//
+// Only `newSessionId` is disclosed and written to the public ledger,
+// so the blockchain records *that* a session occurred, not *what*
+// symptoms were entered.
+export circuit processSymptoms(
+    symptoms: Opaque<"string">,
+    newSessionId: Opaque<"string">
+): [] {
+    // symptoms is intentionally never disclosed — private witness only.
+    sessionId = disclose(newSessionId);
+    sessionCount = disclose((sessionCount + 1) as Uint<64>);
+}

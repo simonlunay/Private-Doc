@@ -1,8 +1,8 @@
 {
-  "name": "my-app",
+  "name": "privatedoc",
   "version": "1.0.0",
   "type": "module",
-  "description": "A Midnight Network application created with create-mn-app",
+  "description": "Privacy-preserving AI health symptom checker built on Midnight blockchain",
   "author": "",
   "license": "MIT",
   "scripts": {
@@ -17,7 +17,9 @@
     "proof-server:stop": "docker compose down",
     "clean": "rm -rf contracts/managed .midnight-state.json",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "test:e2e": "tsx scripts/e2e-check.ts"
+    "test:e2e": "tsx scripts/e2e-check.ts",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:server": "npm --prefix server run dev"
   },
   "dependencies": {
     "@midnight-ntwrk/compact-js": "2.5.0",
