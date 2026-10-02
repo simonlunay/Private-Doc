@@ -4,7 +4,7 @@
 
 Built in 48 hours. Symptoms are processed as a private witness inside a Midnight ZK circuit, so only a session ID is ever written on-chain, while Claude generates structured health guidance.
 
-![Demo](https://www.youtube.com/watch?v=3NScEWbn9F4)
+[Demo](https://www.youtube.com/watch?v=3NScEWbn9F4)
 <!-- Replace with a 10 to 15 second GIF: enter symptoms, show the ZK proof pipeline animation, then the results grid with the session ID -->
 
 > **No hosted demo.** The app runs on my own Claude API key, so there's no public instance. You can run it locally with your own key (see [Run it yourself](#run-it-yourself)).
